@@ -4,7 +4,6 @@
 
 # Environment variables and secrets
 .env
-.env.*
 
 # Python
 __pycache__/

@@ -1,0 +1,17 @@
+
+[Unit]
+Description=Food Trailer Management Django Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/foodtrailer
+EnvironmentFile=/home/ubuntu/foodtrailer/.env
+ExecStart=/home/ubuntu/foodtrailer/.venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 config.wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
