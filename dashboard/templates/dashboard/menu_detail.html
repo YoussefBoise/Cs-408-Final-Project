@@ -1,0 +1,45 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<h1>{{ item.name }}</h1>
+
+<div class="card mt-4">
+    <div class="card-body">
+
+        <h5 class="card-title">Item Details</h5>
+
+        <p><strong>Category:</strong> {{ item.category }}</p>
+
+        <p>
+            <strong>Description:</strong>
+            {{ item.description }}
+        </p>
+
+        <p>
+            <strong>Price:</strong>
+            ${{ item.price }}
+        </p>
+
+        <p>
+            <strong>Availability:</strong>
+            {% if item.available %}
+                Available
+            {% else %}
+                Unavailable
+            {% endif %}
+        </p>
+
+        <a href="{% url 'menu_edit' item.pk %}"
+           class="btn btn-warning">Edit</a>
+
+        <a href="{% url 'menu_delete' item.pk %}"
+           class="btn btn-danger">Delete</a>
+
+        <a href="{% url 'menu_list' %}"
+           class="btn btn-secondary">Back to Menu</a>
+
+    </div>
+</div>
+
+{% endblock %}

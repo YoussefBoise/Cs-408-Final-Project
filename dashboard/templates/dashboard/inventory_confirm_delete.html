@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<h1>Delete Inventory Item</h1>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete
+    <strong>{{ item.name }}</strong>?
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <button type="submit" class="btn btn-danger">
+        Confirm Delete
+    </button>
+
+    <a href="{% url 'inventory_list' %}"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+</form>
+
+{% endblock %}

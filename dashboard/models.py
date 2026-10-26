@@ -21,13 +21,14 @@ class InventoryItem(models.Model):
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     low_stock_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
-    def __str__(self):
-        return self.name
+    @property
+    def is_low_stock(self):
+        return self.quantity <= self.low_stock_amount
 
 
 class Event(models.Model):
     STATUS_CHOICES = [
-        ('Not Applied', 'Not Applied'),
+        ('Nt Apot Applied', 'Noplied'),
         ('Applied', 'Applied'),
         ('Accepted', 'Accepted'),
         ('Rejected', 'Rejected'),
@@ -78,3 +79,8 @@ class Expense(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     date = models.DateField()
     notes = models.TextField(blank=True)
+
+    @property
+    def is_low_stock(self):
+        return self.quantity <= self.low_stock_amount
+    
