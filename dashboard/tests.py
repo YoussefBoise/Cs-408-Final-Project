@@ -312,3 +312,169 @@ class InventoryManagementTests(TestCase):
         self.assertFalse(
             InventoryItem.objects.filter(name="Invalid Threshold").exists()
         )
+
+
+class EventManagementTests(TestCase):
+
+    def setUp(self):
+        self.event = Event.objects.create(
+            name="Boise Food Festival",
+            location="Boise, Idaho",
+            event_date=date(2026, 11, 15),
+            application_deadline=date(2026, 11, 1),
+            application_fee=Decimal("50.00"),
+            application_status="Not Applied",
+            notes="Food trailer event"
+        )
+
+    def test_event_creation(self):
+        self.assertEqual(Event.objects.count(), 1)
+        self.assertEqual(self.event.name, "Boise Food Festival")
+
+    def test_event_page_loads(self):
+        response = self.client.get(reverse("event_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Boise Food Festival")
+
+    def test_event_detail_page(self):
+        response = self.client.get(
+            reverse("event_detail", args=[self.event.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Boise, Idaho")
+
+    def test_create_event(self):
+        response = self.client.post(
+            reverse("event_create"),
+            {
+                "name": "Nampa Food Fair",
+                "location": "Nampa, Idaho",
+                "event_date": "2026-12-10",
+                "application_deadline": "2026-11-20",
+                "application_fee": "25.00",
+                "application_status": "Applied",
+                "notes": "New event"
+            }
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Event.objects.filter(name="Nampa Food Fair").exists()
+        )
+
+    def test_edit_event(self):
+        response = self.client.post(
+            reverse("event_edit", args=[self.event.pk]),
+            {
+                "name": "Updated Food Festival",
+                "location": "Boise, Idaho",
+                "event_date": "2026-11-15",
+                "application_deadline": "2026-11-01",
+                "application_fee": "75.00",
+                "application_status": "Applied",
+                "notes": "Updated event"
+            }
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.event.refresh_from_db()
+        self.assertEqual(self.event.name, "Updated Food Festival")
+        self.assertEqual(
+            self.event.application_fee,
+            Decimal("75.00")
+        )
+
+    def test_delete_event(self):
+        response = self.client.post(
+            reverse("event_delete", args=[self.event.pk])
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(
+            Event.objects.filter(pk=self.event.pk).exists()
+        )
+
+    def test_delete_requires_confirmation(self):
+        self.client.get(
+            reverse("event_delete", args=[self.event.pk])
+        )
+
+        self.assertTrue(
+            Event.objects.filter(pk=self.event.pk).exists()
+        )
+
+    def test_application_status_update(self):
+        response = self.client.post(
+            reverse("event_edit", args=[self.event.pk]),
+            {
+                "name": self.event.name,
+                "location": self.event.location,
+                "event_date": "2026-11-15",
+                "application_deadline": "2026-11-01",
+                "application_fee": "50.00",
+                "application_status": "Accepted",
+                "notes": self.event.notes
+            }
+        )
+
+        self.assertEqual(response.status_code, 302)
+
+        self.event.refresh_from_db()
+        self.assertEqual(
+            self.event.application_status,
+            "Accepted"
+        )
+
+    def test_application_deadline(self):
+        self.assertEqual(
+            self.event.application_deadline,
+            date(2026, 11, 1)
+        )
+
+        response = self.client.get(
+            reverse("event_detail", args=[self.event.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Nov. 1, 2026")
+
+    def test_negative_application_fee_rejected(self):
+        response = self.client.post(
+            reverse("event_create"),
+            {
+                "name": "Invalid Event",
+                "location": "Boise",
+                "event_date": "2026-11-15",
+                "application_deadline": "2026-11-01",
+                "application_fee": "-50.00",
+                "application_status": "Not Applied",
+                "notes": ""
+            }
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "Application fee cannot be negative."
+        )
+        self.assertFalse(
+            Event.objects.filter(name="Invalid Event").exists()
+        )
+
+    def test_event_status_choices(self):
+        expected_statuses = [
+            "Not Applied",
+            "Applied",
+            "Accepted",
+            "Rejected",
+            "Attending"
+        ]
+
+        actual_statuses = [
+            choice[0] for choice in Event.STATUS_CHOICES
+        ]
+
+        self.assertEqual(actual_statuses, expected_statuses)

@@ -1,6 +1,5 @@
 from django import forms
-from .models import MenuItem, InventoryItem
-
+from .models import MenuItem, InventoryItem, Event
 
 class MenuItemForm(forms.ModelForm):
     class Meta:
@@ -41,6 +40,7 @@ class MenuItemForm(forms.ModelForm):
             )
 
         return price
+
 
 
 class InventoryItemForm(forms.ModelForm):
@@ -106,3 +106,54 @@ class InventoryItemForm(forms.ModelForm):
             )
 
         return amount
+
+
+class EventForm(forms.ModelForm):
+    class Meta:
+        model = Event
+
+        fields = [
+            "name",
+            "location",
+            "event_date",
+            "application_deadline",
+            "application_fee",
+            "application_status",
+            "notes",
+        ]
+
+        widgets = {
+            "name": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "location": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "event_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+                format="%Y-%m-%d"
+            ),
+            "application_deadline": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+                format="%Y-%m-%d"
+            ),
+            "application_fee": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+            "application_status": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "notes": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
+        }
+
+    def clean_application_fee(self):
+        fee = self.cleaned_data["application_fee"]
+
+        if fee < 0:
+            raise forms.ValidationError(
+                "Application fee cannot be negative."
+            )
+
+        return fee

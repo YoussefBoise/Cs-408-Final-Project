@@ -1,9 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import ProtectedError
 
-from .models import MenuItem, InventoryItem
-from .forms import MenuItemForm, InventoryItemForm
-
+from .models import MenuItem, InventoryItem, Event
+from .forms import MenuItemForm, InventoryItemForm, EventForm
 
 def home(request):
     return render(request, "dashboard/home.html")
@@ -123,4 +122,62 @@ def inventory_delete(request, pk):
         request,
         "dashboard/inventory_confirm_delete.html",
         {"item": item}
+    )
+    
+
+def event_list(request):
+    events = Event.objects.all().order_by("event_date")
+
+    return render(request, "dashboard/events.html", {
+        "events": events
+    })
+
+
+def event_detail(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+
+    return render(request, "dashboard/event_detail.html", {
+        "event": event
+    })
+
+
+def event_create(request):
+    form = EventForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        event = form.save()
+        return redirect("event_detail", pk=event.pk)
+
+    return render(request, "dashboard/event_form.html", {
+        "form": form,
+        "title": "Add Event"
+    })
+
+
+def event_edit(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+
+    form = EventForm(request.POST or None, instance=event)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("event_detail", pk=event.pk)
+
+    return render(request, "dashboard/event_form.html", {
+        "form": form,
+        "title": "Edit Event"
+    })
+
+
+def event_delete(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+
+    if request.method == "POST":
+        event.delete()
+        return redirect("event_list")
+
+    return render(
+        request,
+        "dashboard/event_confirm_delete.html",
+        {"event": event}
     )

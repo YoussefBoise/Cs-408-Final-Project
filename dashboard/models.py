@@ -28,7 +28,7 @@ class InventoryItem(models.Model):
 
 class Event(models.Model):
     STATUS_CHOICES = [
-        ('Nt Apot Applied', 'Noplied'),
+        ('Not Applied', 'Not Applied'),
         ('Applied', 'Applied'),
         ('Accepted', 'Accepted'),
         ('Rejected', 'Rejected'),
@@ -49,6 +49,7 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
+
 
 
 class Sale(models.Model):
@@ -80,7 +81,3 @@ class Expense(models.Model):
     date = models.DateField()
     notes = models.TextField(blank=True)
 
-    @property
-    def is_low_stock(self):
-        return self.quantity <= self.low_stock_amount
-    

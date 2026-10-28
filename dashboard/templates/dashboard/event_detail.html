@@ -1,0 +1,43 @@
+
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<h1 class="mb-4">{{ event.name }}</h1>
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Event Information</h5>
+
+        <p><strong>Location:</strong> {{ event.location }}</p>
+
+        <p><strong>Event Date:</strong> {{ event.event_date }}</p>
+
+        <p><strong>Application Deadline:</strong>
+            {{ event.application_deadline }}
+        </p>
+
+        <p><strong>Application Fee:</strong>
+            ${{ event.application_fee }}
+        </p>
+
+        <p><strong>Application Status:</strong>
+            {{ event.application_status }}
+        </p>
+
+        <p><strong>Notes:</strong>
+            {{ event.notes|default:"No notes provided." }}
+        </p>
+
+        <a href="{% url 'event_edit' event.pk %}"
+           class="btn btn-warning">Edit Event</a>
+
+        <a href="{% url 'event_delete' event.pk %}"
+           class="btn btn-danger">Delete Event</a>
+
+        <a href="{% url 'event_list' %}"
+           class="btn btn-secondary">Back to Events</a>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<h1 class="mb-4">Delete Event</h1>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete
+    <strong>{{ event.name }}</strong>?
+</div>
+
+<form method="post">
+    {% csrf_token %}
+
+    <button type="submit" class="btn btn-danger">
+        Yes, Delete
+    </button>
+
+    <a href="{% url 'event_detail' event.pk %}"
+       class="btn btn-secondary">
+        Cancel
+    </a>
+</form>
+
+{% endblock %}
