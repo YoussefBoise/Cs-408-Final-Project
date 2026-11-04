@@ -1,0 +1,27 @@
+
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+<h1 class="mb-4">Delete Expense</h1>
+
+<div class="card">
+    <div class="card-body">
+        <p>
+            Are you sure you want to delete
+            <strong>{{ expense.description }}</strong>
+            for ${{ expense.amount|floatformat:2 }}?
+        </p>
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                Yes, Delete
+            </button>
+            <a href="{% url 'expense_list' %}"
+               class="btn btn-secondary">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}

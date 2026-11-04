@@ -1,8 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import ProtectedError
 
-from .models import MenuItem, InventoryItem, Event
-from .forms import MenuItemForm, InventoryItemForm, EventForm
+from .models import MenuItem, InventoryItem, Event, Sale, Expense
+from .forms import (
+    MenuItemForm,
+    InventoryItemForm,
+    EventForm,
+    SaleForm,
+    ExpenseForm,
+)
 
 def home(request):
     return render(request, "dashboard/home.html")
@@ -180,4 +186,112 @@ def event_delete(request, pk):
         request,
         "dashboard/event_confirm_delete.html",
         {"event": event}
+    )
+
+
+# Sales Management
+
+def sale_list(request):
+    sales = Sale.objects.select_related(
+        "menu_item", "event"
+    ).order_by("-sale_date", "-pk")
+
+    return render(request, "dashboard/sales.html", {
+        "sales": sales
+    })
+
+
+def sale_create(request):
+    form = SaleForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("sale_list")
+
+    return render(request, "dashboard/sale_form.html", {
+        "form": form,
+        "title": "Add Sale"
+    })
+
+
+def sale_edit(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+
+    form = SaleForm(request.POST or None, instance=sale)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("sale_list")
+
+    return render(request, "dashboard/sale_form.html", {
+        "form": form,
+        "title": "Edit Sale"
+    })
+
+
+def sale_delete(request, pk):
+    sale = get_object_or_404(Sale, pk=pk)
+
+    if request.method == "POST":
+        sale.delete()
+        return redirect("sale_list")
+
+    return render(
+        request,
+        "dashboard/sale_confirm_delete.html",
+        {"sale": sale}
+    )
+
+
+# Expense Management
+
+def expense_list(request):
+    expenses = Expense.objects.select_related(
+        "event"
+    ).order_by("-date", "-pk")
+
+    return render(request, "dashboard/expenses.html", {
+        "expenses": expenses
+    })
+
+
+def expense_create(request):
+    form = ExpenseForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("expense_list")
+
+    return render(request, "dashboard/expense_form.html", {
+        "form": form,
+        "title": "Add Expense"
+    })
+
+
+def expense_edit(request, pk):
+    expense = get_object_or_404(Expense, pk=pk)
+
+    form = ExpenseForm(request.POST or None, instance=expense)
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        return redirect("expense_list")
+
+    return render(request, "dashboard/expense_form.html", {
+        "form": form,
+        "title": "Edit Expense"
+    })
+
+
+def expense_delete(request, pk):
+    expense = get_object_or_404(Expense, pk=pk)
+
+    if request.method == "POST":
+        expense.delete()
+        return redirect("expense_list")
+
+    return render(
+        request,
+        "dashboard/expense_confirm_delete.html",
+        {"expense": expense}
     )

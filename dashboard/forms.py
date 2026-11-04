@@ -1,5 +1,7 @@
+
 from django import forms
-from .models import MenuItem, InventoryItem, Event
+from .models import MenuItem, InventoryItem, Event, Sale, Expense
+
 
 class MenuItemForm(forms.ModelForm):
     class Meta:
@@ -40,7 +42,6 @@ class MenuItemForm(forms.ModelForm):
             )
 
         return price
-
 
 
 class InventoryItemForm(forms.ModelForm):
@@ -138,7 +139,11 @@ class EventForm(forms.ModelForm):
                 format="%Y-%m-%d"
             ),
             "application_fee": forms.NumberInput(
-                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0"
+                }
             ),
             "application_status": forms.Select(
                 attrs={"class": "form-select"}
@@ -157,3 +162,145 @@ class EventForm(forms.ModelForm):
             )
 
         return fee
+
+
+class SaleForm(forms.ModelForm):
+    class Meta:
+        model = Sale
+
+        fields = [
+            "menu_item",
+            "event",
+            "quantity",
+            "unit_price",
+            "sale_date",
+        ]
+
+        widgets = {
+            "menu_item": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "event": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "quantity": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "min": "1",
+                    "step": "1"
+                }
+            ),
+            "unit_price": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0"
+                }
+            ),
+            "sale_date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+                format="%Y-%m-%d"
+            ),
+        }
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data["quantity"]
+
+        if quantity <= 0:
+            raise forms.ValidationError(
+                "Quantity must be greater than zero."
+            )
+
+        return quantity
+
+    def clean_unit_price(self):
+        price = self.cleaned_data["unit_price"]
+
+        if price < 0:
+            raise forms.ValidationError(
+                "Unit price cannot be negative."
+            )
+
+        return price
+
+
+class ExpenseForm(forms.ModelForm):
+    class Meta:
+        model = Expense
+
+        fields = [
+            "description",
+            "category",
+            "store",
+            "quantity",
+            "amount",
+            "date",
+            "event",
+            "notes",
+        ]
+
+        labels = {
+            "description": "Item / Description",
+            "store": "Store / Vendor",
+            "amount": "Total Amount",
+        }
+
+        widgets = {
+            "description": forms.TextInput(
+                attrs={"class": "form-control"}
+            ),
+            "category": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "store": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "list": "store-options",
+                    "placeholder": "WinCo, Walmart, US CHEF'STORE, etc."
+                }
+            ),
+            "quantity": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0.01"
+                }
+            ),
+            "amount": forms.NumberInput(
+                attrs={
+                    "class": "form-control",
+                    "step": "0.01",
+                    "min": "0"
+                }
+            ),
+            "date": forms.DateInput(
+                attrs={"class": "form-control", "type": "date"},
+                format="%Y-%m-%d"
+            ),
+            "event": forms.Select(
+                attrs={"class": "form-select"}
+            ),
+            "notes": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
+        }
+
+    def clean_quantity(self):
+        quantity = self.cleaned_data["quantity"]
+
+        if quantity <= 0:
+            raise forms.ValidationError(
+                "Quantity must be greater than zero."
+            )
+
+        return quantity
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+
+        if amount < 0:
+            raise forms.ValidationError(
+                "Expense amount cannot be negative."
+            )
+
+        return amount

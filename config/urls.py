@@ -54,4 +54,17 @@ urlpatterns = [
 
     path("events/<int:pk>/delete/", views.event_delete, name="event_delete"),
 
+    
+    # Sales
+    path("sales/", views.sale_list, name="sale_list"),
+    path("sales/add/", views.sale_create, name="sale_create"),
+    path("sales/<int:pk>/edit/", views.sale_edit, name="sale_edit"),
+    path("sales/<int:pk>/delete/", views.sale_delete, name="sale_delete"),
+
+    # Expenses
+    path("expenses/", views.expense_list, name="expense_list"),
+    path("expenses/add/", views.expense_create, name="expense_create"),
+    path("expenses/<int:pk>/edit/", views.expense_edit, name="expense_edit"),
+    path("expenses/<int:pk>/delete/", views.expense_delete, name="expense_delete"),
+
 ]

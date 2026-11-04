@@ -68,7 +68,19 @@ class Sale(models.Model):
     sale_date = models.DateField()
 
 
+
 class Expense(models.Model):
+    CATEGORY_CHOICES = [
+        ("Ingredients", "Food / Ingredients"),
+        ("Event Fee", "Event Fee"),
+        ("Supplies", "Supplies"),
+        ("Fuel", "Fuel"),
+        ("Equipment", "Equipment"),
+        ("Repairs", "Repairs"),
+        ("Permits", "Permits"),
+        ("Other", "Other"),
+    ]
+
     event = models.ForeignKey(
         Event,
         on_delete=models.SET_NULL,
@@ -76,8 +88,27 @@ class Expense(models.Model):
         blank=True
     )
     description = models.CharField(max_length=200)
-    category = models.CharField(max_length=50)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES
+    )
+    store = models.CharField(
+        max_length=100,
+        blank=True
+    )
+    quantity = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=1
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
     date = models.DateField()
     notes = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.description
+
 
