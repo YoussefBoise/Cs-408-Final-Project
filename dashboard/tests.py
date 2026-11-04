@@ -1,4 +1,3 @@
-
 from datetime import date
 from decimal import Decimal
 
@@ -478,3 +477,395 @@ class EventManagementTests(TestCase):
         ]
 
         self.assertEqual(actual_statuses, expected_statuses)
+
+
+
+# ==========================================
+# Checkpoint 4: Sales and Expense Tests
+# ==========================================
+
+from datetime import date
+from decimal import Decimal
+
+from django.test import TestCase
+from django.urls import reverse
+from django.db.models import ProtectedError
+
+from .models import MenuItem, Event, Sale, Expense
+
+
+class SalesManagementTests(TestCase):
+
+    def setUp(self):
+        self.menu_item = MenuItem.objects.create(
+            name="Corn Dog",
+            category="Food",
+            description="Regular corn dog",
+            price=Decimal("6.00"),
+            available=True
+        )
+
+        self.event = Event.objects.create(
+            name="Boise Food Festival",
+            location="Boise",
+            event_date=date(2026, 11, 20),
+            application_deadline=date(2026, 11, 10),
+            application_fee=Decimal("100.00"),
+            application_status="Accepted",
+            notes=""
+        )
+
+        self.sale_data = {
+            "menu_item": self.menu_item.pk,
+            "event": self.event.pk,
+            "quantity": 3,
+            "unit_price": "6.00",
+            "sale_date": "2026-11-20",
+        }
+
+    def create_sale(self):
+        return Sale.objects.create(
+            menu_item=self.menu_item,
+            event=self.event,
+            quantity=3,
+            unit_price=Decimal("6.00"),
+            sale_date=date(2026, 11, 20)
+        )
+
+    # 1. Sales page loads
+    def test_sales_page_loads(self):
+        response = self.client.get(reverse("sale_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "dashboard/sales.html")
+
+    # 2. Add Sale form loads
+    def test_sale_create_page_loads(self):
+        response = self.client.get(reverse("sale_create"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "dashboard/sale_form.html")
+
+    # 3. Create a sale associated with an event
+    def test_create_sale(self):
+        response = self.client.post(
+            reverse("sale_create"),
+            self.sale_data
+        )
+
+        self.assertRedirects(response, reverse("sale_list"))
+        self.assertEqual(Sale.objects.count(), 1)
+
+        sale = Sale.objects.first()
+
+        self.assertEqual(sale.menu_item, self.menu_item)
+        self.assertEqual(sale.event, self.event)
+        self.assertEqual(sale.quantity, 3)
+        self.assertEqual(sale.unit_price, Decimal("6.00"))
+
+    # 4. Create sale without an event
+    def test_create_sale_without_event(self):
+        data = self.sale_data.copy()
+        data["event"] = ""
+
+        response = self.client.post(
+            reverse("sale_create"),
+            data
+        )
+
+        self.assertRedirects(response, reverse("sale_list"))
+        self.assertIsNone(Sale.objects.first().event)
+
+    # 5. Edit an existing sale
+    def test_edit_sale(self):
+        sale = self.create_sale()
+
+        data = self.sale_data.copy()
+        data["quantity"] = 10
+        data["unit_price"] = "7.50"
+
+        response = self.client.post(
+            reverse("sale_edit", args=[sale.pk]),
+            data
+        )
+
+        self.assertRedirects(response, reverse("sale_list"))
+
+        sale.refresh_from_db()
+
+        self.assertEqual(sale.quantity, 10)
+        self.assertEqual(sale.unit_price, Decimal("7.50"))
+
+    # 6. Delete a sale
+    def test_delete_sale(self):
+        sale = self.create_sale()
+
+        url = reverse("sale_delete", args=[sale.pk])
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Sale.objects.count(), 1)
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, reverse("sale_list"))
+        self.assertEqual(Sale.objects.count(), 0)
+
+    # 7. Reject zero and negative quantities
+    def test_invalid_sale_quantity(self):
+        for quantity in [0, -5]:
+            with self.subTest(quantity=quantity):
+                data = self.sale_data.copy()
+                data["quantity"] = quantity
+
+                response = self.client.post(
+                    reverse("sale_create"),
+                    data
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(Sale.objects.count(), 0)
+                self.assertIn(
+                    "quantity",
+                    response.context["form"].errors
+                )
+
+    # 8. Reject negative prices
+    def test_negative_sale_price(self):
+        data = self.sale_data.copy()
+        data["unit_price"] = "-5.00"
+
+        response = self.client.post(
+            reverse("sale_create"),
+            data
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Sale.objects.count(), 0)
+        self.assertIn(
+            "unit_price",
+            response.context["form"].errors
+        )
+
+    # 9. A menu item with recorded sales cannot be deleted
+    def test_sale_protects_menu_item(self):
+        self.create_sale()
+
+        with self.assertRaises(ProtectedError):
+            self.menu_item.delete()
+
+        self.assertTrue(
+            MenuItem.objects.filter(
+                pk=self.menu_item.pk
+            ).exists()
+        )
+
+    # 10. Deleting an event preserves associated sales
+    def test_delete_event_preserves_sale(self):
+        sale = self.create_sale()
+
+        self.event.delete()
+        sale.refresh_from_db()
+
+        self.assertIsNone(sale.event)
+        self.assertEqual(Sale.objects.count(), 1)
+
+
+class ExpenseManagementTests(TestCase):
+
+    def setUp(self):
+        self.event = Event.objects.create(
+            name="Boise Food Festival",
+            location="Boise",
+            event_date=date(2026, 11, 20),
+            application_deadline=date(2026, 11, 10),
+            application_fee=Decimal("100.00"),
+            application_status="Accepted",
+            notes=""
+        )
+
+        self.expense_data = {
+            "description": "Flour",
+            "category": "Ingredients",
+            "store": "WinCo",
+            "quantity": "2",
+            "amount": "15.98",
+            "date": "2026-11-15",
+            "event": self.event.pk,
+            "notes": "Two bags of flour",
+        }
+
+    def create_expense(self):
+        return Expense.objects.create(
+            description="Flour",
+            category="Ingredients",
+            store="WinCo",
+            quantity=Decimal("2.00"),
+            amount=Decimal("15.98"),
+            date=date(2026, 11, 15),
+            event=self.event,
+            notes="Two bags of flour"
+        )
+
+    # 1. Expenses page loads
+    def test_expenses_page_loads(self):
+        response = self.client.get(reverse("expense_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "dashboard/expenses.html")
+
+    # 2. Add Expense form loads
+    def test_expense_create_page_loads(self):
+        response = self.client.get(reverse("expense_create"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "dashboard/expense_form.html")
+
+        self.assertContains(response, "WinCo")
+
+    # 3. Create a food expense from WinCo
+    def test_create_food_expense(self):
+        response = self.client.post(
+            reverse("expense_create"),
+            self.expense_data
+        )
+
+        self.assertRedirects(response, reverse("expense_list"))
+        self.assertEqual(Expense.objects.count(), 1)
+
+        expense = Expense.objects.first()
+
+        self.assertEqual(expense.description, "Flour")
+        self.assertEqual(expense.category, "Ingredients")
+        self.assertEqual(expense.store, "WinCo")
+        self.assertEqual(expense.quantity, Decimal("2.00"))
+        self.assertEqual(expense.amount, Decimal("15.98"))
+        self.assertEqual(expense.event, self.event)
+
+        response = self.client.get(reverse("expense_list"))
+        self.assertContains(response, "WinCo")
+        self.assertContains(response, "Flour")
+
+    # 4. Create an event fee without a store
+    def test_create_event_fee(self):
+        data = self.expense_data.copy()
+
+        data["description"] = "Festival Vendor Fee"
+        data["category"] = "Event Fee"
+        data["store"] = ""
+        data["quantity"] = "1"
+        data["amount"] = "150.00"
+
+        response = self.client.post(
+            reverse("expense_create"),
+            data
+        )
+
+        self.assertRedirects(response, reverse("expense_list"))
+
+        expense = Expense.objects.first()
+
+        self.assertEqual(expense.category, "Event Fee")
+        self.assertEqual(expense.store, "")
+        self.assertEqual(expense.amount, Decimal("150.00"))
+        self.assertEqual(expense.event, self.event)
+
+    # 5. Edit an expense
+    def test_edit_expense(self):
+        expense = self.create_expense()
+
+        data = self.expense_data.copy()
+        data["description"] = "Cooking Oil"
+        data["store"] = "US CHEF'STORE"
+        data["amount"] = "42.50"
+
+        response = self.client.post(
+            reverse("expense_edit", args=[expense.pk]),
+            data
+        )
+
+        self.assertRedirects(response, reverse("expense_list"))
+
+        expense.refresh_from_db()
+
+        self.assertEqual(expense.description, "Cooking Oil")
+        self.assertEqual(expense.store, "US CHEF'STORE")
+        self.assertEqual(expense.amount, Decimal("42.50"))
+
+    # 6. Delete an expense
+    def test_delete_expense(self):
+        expense = self.create_expense()
+
+        url = reverse("expense_delete", args=[expense.pk])
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 1)
+
+        response = self.client.post(url)
+
+        self.assertRedirects(response, reverse("expense_list"))
+        self.assertEqual(Expense.objects.count(), 0)
+
+    # 7. Reject zero and negative quantities
+    def test_invalid_expense_quantity(self):
+        for quantity in ["0", "-2"]:
+            with self.subTest(quantity=quantity):
+                data = self.expense_data.copy()
+                data["quantity"] = quantity
+
+                response = self.client.post(
+                    reverse("expense_create"),
+                    data
+                )
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(Expense.objects.count(), 0)
+                self.assertIn(
+                    "quantity",
+                    response.context["form"].errors
+                )
+
+    # 8. Reject negative expenses
+    def test_negative_expense_amount(self):
+        data = self.expense_data.copy()
+        data["amount"] = "-20.00"
+
+        response = self.client.post(
+            reverse("expense_create"),
+            data
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 0)
+        self.assertIn(
+            "amount",
+            response.context["form"].errors
+        )
+
+    # 9. Reject invalid expense categories
+    def test_invalid_expense_category(self):
+        data = self.expense_data.copy()
+        data["category"] = "Invalid Category"
+
+        response = self.client.post(
+            reverse("expense_create"),
+            data
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Expense.objects.count(), 0)
+        self.assertIn(
+            "category",
+            response.context["form"].errors
+        )
+
+    # 10. Deleting an event preserves expenses
+    def test_delete_event_preserves_expense(self):
+        expense = self.create_expense()
+
+        self.event.delete()
+        expense.refresh_from_db()
+
+        self.assertIsNone(expense.event)
+        self.assertEqual(Expense.objects.count(), 1)
