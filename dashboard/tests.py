@@ -869,3 +869,219 @@ class ExpenseManagementTests(TestCase):
 
         self.assertIsNone(expense.event)
         self.assertEqual(Expense.objects.count(), 1)
+
+
+# ==========================================
+# Checkpoint 5: Financial Calculation Tests
+# ==========================================
+
+from .finance import calculate_finances
+
+
+class FinancialCalculationTests(TestCase):
+
+    def setUp(self):
+        self.item = MenuItem.objects.create(
+            name="Corn Dog",
+            category="Food",
+            price=Decimal("6.50"),
+            available=True
+        )
+
+        self.event1 = Event.objects.create(
+            name="Boise Festival",
+            location="Boise",
+            event_date=date(2026, 11, 20),
+            application_deadline=date(2026, 11, 10),
+            application_fee=Decimal("100.00"),
+            application_status="Accepted"
+        )
+
+        self.event2 = Event.objects.create(
+            name="Downtown Market",
+            location="Boise",
+            event_date=date(2026, 11, 21),
+            application_deadline=date(2026, 11, 11),
+            application_fee=Decimal("50.00"),
+            application_status="Accepted"
+        )
+
+        # Event 1: 3 x $6.50 = $19.50
+        self.sale1 = Sale.objects.create(
+            menu_item=self.item,
+            event=self.event1,
+            quantity=3,
+            unit_price=Decimal("6.50"),
+            sale_date=date(2026, 11, 20)
+        )
+
+        # Event 2: 2 x $10 = $20.00
+        Sale.objects.create(
+            menu_item=self.item,
+            event=self.event2,
+            quantity=2,
+            unit_price=Decimal("10.00"),
+            sale_date=date(2026, 11, 21)
+        )
+
+        # Business sale without an event: $5.00
+        Sale.objects.create(
+            menu_item=self.item,
+            event=None,
+            quantity=1,
+            unit_price=Decimal("5.00"),
+            sale_date=date(2026, 11, 22)
+        )
+
+        # Expenses: $4.50 + $7.00 + $3.00
+        for description, amount, event in [
+            ("Flour", "4.50", self.event1),
+            ("Supplies", "7.00", self.event2),
+            ("Fuel", "3.00", None),
+        ]:
+            Expense.objects.create(
+                description=description,
+                category="Ingredients",
+                store="WinCo",
+                quantity=Decimal("1.00"),
+                amount=Decimal(amount),
+                date=date(2026, 11, 20),
+                event=event
+            )
+
+    # Test 1: Financial summary loads
+    def test_financial_page_loads(self):
+        response = self.client.get(
+            reverse("financial_summary")
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(
+            response,
+            "dashboard/finances.html"
+        )
+
+    # Test 2: Total business revenue
+    def test_total_revenue(self):
+        totals = calculate_finances()
+
+        self.assertEqual(
+            totals["revenue"],
+            Decimal("44.50")
+        )
+
+    # Test 3: Total business expenses
+    def test_total_expenses(self):
+        totals = calculate_finances()
+
+        self.assertEqual(
+            totals["expenses"],
+            Decimal("14.50")
+        )
+
+    # Test 4: Total estimated profit
+    def test_total_profit(self):
+        totals = calculate_finances()
+
+        self.assertEqual(
+            totals["profit"],
+            Decimal("30.00")
+        )
+
+    # Test 5: Event 1 calculation
+    def test_event_one_profit(self):
+        totals = calculate_finances(self.event1)
+
+        self.assertEqual(
+            totals["revenue"],
+            Decimal("19.50")
+        )
+        self.assertEqual(
+            totals["expenses"],
+            Decimal("4.50")
+        )
+        self.assertEqual(
+            totals["profit"],
+            Decimal("15.00")
+        )
+
+    # Test 6: Event 2 calculation
+    def test_event_two_profit(self):
+        totals = calculate_finances(self.event2)
+
+        self.assertEqual(
+            totals["revenue"],
+            Decimal("20.00")
+        )
+        self.assertEqual(
+            totals["expenses"],
+            Decimal("7.00")
+        )
+        self.assertEqual(
+            totals["profit"],
+            Decimal("13.00")
+        )
+
+    # Test 7: Filtering by event
+    def test_event_filter(self):
+        response = self.client.get(
+            reverse("financial_summary"),
+            {"event": self.event1.pk}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context["totals"]["profit"],
+            Decimal("15.00")
+        )
+        self.assertContains(
+            response, "Boise Festival"
+        )
+
+    # Test 8: Invalid events return 404
+    def test_invalid_event(self):
+        for value in ["invalid", "999999"]:
+            with self.subTest(event=value):
+                response = self.client.get(
+                    reverse("financial_summary"),
+                    {"event": value}
+                )
+                self.assertEqual(
+                    response.status_code, 404
+                )
+
+    # Test 9: Empty records return zero
+    def test_empty_finances(self):
+        Sale.objects.all().delete()
+        Expense.objects.all().delete()
+
+        totals = calculate_finances()
+
+        self.assertEqual(
+            totals["revenue"],
+            Decimal("0.00")
+        )
+        self.assertEqual(
+            totals["expenses"],
+            Decimal("0.00")
+        )
+        self.assertEqual(
+            totals["profit"],
+            Decimal("0.00")
+        )
+
+    # Test 10: Updating sales changes profit
+    def test_profit_updates_after_sale_edit(self):
+        self.sale1.quantity = 5
+        self.sale1.save()
+
+        totals = calculate_finances(self.event1)
+
+        self.assertEqual(
+            totals["revenue"],
+            Decimal("32.50")
+        )
+        self.assertEqual(
+            totals["profit"],
+            Decimal("28.00")
+        )

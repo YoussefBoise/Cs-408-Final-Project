@@ -1,0 +1,176 @@
+
+{% extends "dashboard/base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Financial Summary</h1>
+</div>
+
+<!-- Select business-wide or event-specific results -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+
+            <div class="col-md-8">
+                <label for="event" class="form-label">
+                    View Finances For
+                </label>
+
+                <select name="event" id="event"
+                        class="form-select">
+                    <option value="">Entire Business</option>
+
+                    {% for event in events %}
+                    <option value="{{ event.pk }}"
+                        {% if selected_event and selected_event.pk == event.pk %}selected{% endif %}>
+                        {{ event.name }} - {{ event.event_date }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <button type="submit"
+                        class="btn btn-primary w-100">
+                    View Summary
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<h3 class="mb-3">
+    {% if selected_event %}
+        {{ selected_event.name }}
+    {% else %}
+        Entire Business
+    {% endif %}
+</h3>
+
+<!-- Financial totals -->
+<div class="row g-4 mb-5">
+
+    <div class="col-md-4">
+        <div class="card h-100 border-success">
+            <div class="card-body">
+                <h5 class="text-muted">Total Revenue</h5>
+                <h2 class="text-success">
+                    ${{ totals.revenue|floatformat:2 }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 border-danger">
+            <div class="card-body">
+                <h5 class="text-muted">Total Expenses</h5>
+                <h2 class="text-danger">
+                    ${{ totals.expenses|floatformat:2 }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 border-primary">
+            <div class="card-body">
+                <h5 class="text-muted">Estimated Profit</h5>
+
+                <h2 class="{% if totals.profit < 0 %}text-danger{% else %}text-primary{% endif %}">
+                    ${{ totals.profit|floatformat:2 }}
+                </h2>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Breakdown of all events -->
+<h3 class="mb-3">Financial Results by Event</h3>
+
+<div class="card">
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <table class="table table-striped align-middle">
+
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Revenue</th>
+                        <th>Expenses</th>
+                        <th>Estimated Profit</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in event_summaries %}
+                    <tr>
+                        <td>{{ row.event.name }}</td>
+
+                        <td>
+                            ${{ row.revenue|floatformat:2 }}
+                        </td>
+
+                        <td>
+                            ${{ row.expenses|floatformat:2 }}
+                        </td>
+
+                        <td>
+                            {% if row.profit < 0 %}
+                                <span class="text-danger">
+                                    ${{ row.profit|floatformat:2 }}
+                                </span>
+                            {% else %}
+                                <span class="text-success">
+                                    ${{ row.profit|floatformat:2 }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <a href="{% url 'financial_summary' %}?event={{ row.event.pk }}"
+                               class="btn btn-sm btn-outline-primary">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            No events recorded yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2">
+    <a href="{% url 'sale_list' %}"
+       class="btn btn-outline-primary">
+        Manage Sales
+    </a>
+
+    <a href="{% url 'expense_list' %}"
+       class="btn btn-outline-secondary">
+        Manage Expenses
+    </a>
+</div>
+
+<p class="text-muted mt-3">
+    Estimated profit is calculated from recorded sales
+    minus recorded expenses. Transactions without an
+    assigned event are included in business-wide totals,
+    but not in individual event totals.
+</p>
+
+{% endblock %}

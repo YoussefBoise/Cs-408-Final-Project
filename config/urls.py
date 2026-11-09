@@ -67,4 +67,7 @@ urlpatterns = [
     path("expenses/<int:pk>/edit/", views.expense_edit, name="expense_edit"),
     path("expenses/<int:pk>/delete/", views.expense_delete, name="expense_delete"),
 
+    # Finance
+    path("finances/", views.financial_summary, name="financial_summary"),
+
 ]

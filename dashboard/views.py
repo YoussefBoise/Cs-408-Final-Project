@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db.models import ProtectedError
+from django.http import Http404
+from .finance import calculate_finances
 
 from .models import MenuItem, InventoryItem, Event, Sale, Expense
 from .forms import (
@@ -294,4 +296,53 @@ def expense_delete(request, pk):
         request,
         "dashboard/expense_confirm_delete.html",
         {"expense": expense}
+    )
+
+
+
+# Checkpoint 5: Financial Summary
+
+def financial_summary(request):
+    events = Event.objects.all().order_by(
+        "event_date", "name"
+    )
+
+    selected_event = None
+    event_id = request.GET.get("event", "")
+
+    if event_id:
+        try:
+            event_pk = int(event_id)
+        except ValueError:
+            raise Http404("Invalid event ID")
+
+        selected_event = get_object_or_404(
+            Event, pk=event_pk
+        )
+
+    # Business totals or selected event totals
+    totals = calculate_finances(selected_event)
+
+    # Calculate financial results for each event
+    event_summaries = []
+
+    for event in events:
+        event_totals = calculate_finances(event)
+
+        event_summaries.append({
+            "event": event,
+            "revenue": event_totals["revenue"],
+            "expenses": event_totals["expenses"],
+            "profit": event_totals["profit"],
+        })
+
+    return render(
+        request,
+        "dashboard/finances.html",
+        {
+            "events": events,
+            "selected_event": selected_event,
+            "totals": totals,
+            "event_summaries": event_summaries,
+        }
     )
