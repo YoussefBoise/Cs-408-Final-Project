@@ -34,8 +34,8 @@
                     </a>
                 </td>
                 <td>{{ event.location }}</td>
-                <td>{{ event.event_date|date:"M j, Y"|default:"TBD" }}</td>
-                <td>{{ event.application_deadline|date:"M j, Y"|default:"TBD" }}</td>
+                <td>{{ event.event_date|date:"N j, Y"|default:"TBD" }}</td>
+                <td>{{ event.application_deadline|date:"N j, Y"|default:"TBD" }}</td>
                 <td>{% if event.application_fee == None %}TBD{% else %}${{ event.application_fee }}{% endif %}</td>
                 <td>
                     {% if event.application_status == "Accepted" or event.application_status == "Attending" %}
