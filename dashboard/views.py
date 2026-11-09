@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, F
 from django.http import Http404
 from .finance import calculate_finances
 
@@ -134,7 +134,7 @@ def inventory_delete(request, pk):
     
 
 def event_list(request):
-    events = Event.objects.all().order_by("event_date")
+    events = Event.objects.all().order_by(F("event_date").asc(nulls_last=True), "name")
 
     return render(request, "dashboard/events.html", {
         "events": events
@@ -304,7 +304,7 @@ def expense_delete(request, pk):
 
 def financial_summary(request):
     events = Event.objects.all().order_by(
-        "event_date", "name"
+        F("event_date").asc(nulls_last=True), "name"
     )
 
     selected_event = None
