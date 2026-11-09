@@ -11,14 +11,14 @@
 
         <p><strong>Location:</strong> {{ event.location }}</p>
 
-        <p><strong>Event Date:</strong> {{ event.event_date }}</p>
+        <p><strong>Event Date:</strong> {{ event.event_date|date:"M j, Y"|default:"TBD" }}</p>
 
         <p><strong>Application Deadline:</strong>
-            {{ event.application_deadline }}
+            {{ event.application_deadline|date:"M j, Y"|default:"TBD" }}
         </p>
 
         <p><strong>Application Fee:</strong>
-            ${{ event.application_fee }}
+            {% if event.application_fee == None %}TBD{% else %}${{ event.application_fee }}{% endif %}
         </p>
 
         <p><strong>Application Status:</strong>
@@ -26,7 +26,7 @@
         </p>
 
         <p><strong>Notes:</strong>
-            {{ event.notes|default:"No notes provided." }}
+            {{ event.notes|default:"No notes provided."|urlize|linebreaksbr }}
         </p>
 
         <a href="{% url 'event_edit' event.pk %}"
