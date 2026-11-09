@@ -156,7 +156,7 @@ class EventForm(forms.ModelForm):
     def clean_application_fee(self):
         fee = self.cleaned_data["application_fee"]
 
-        if fee < 0:
+        if fee is not None and fee < 0:
             raise forms.ValidationError(
                 "Application fee cannot be negative."
             )

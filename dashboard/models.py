@@ -37,9 +37,9 @@ class Event(models.Model):
 
     name = models.CharField(max_length=150)
     location = models.CharField(max_length=200)
-    event_date = models.DateField()
-    application_deadline = models.DateField()
-    application_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    event_date = models.DateField(null=True, blank=True)
+    application_deadline = models.DateField(null=True, blank=True)
+    application_fee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     application_status = models.CharField(
         max_length=30,
         choices=STATUS_CHOICES,

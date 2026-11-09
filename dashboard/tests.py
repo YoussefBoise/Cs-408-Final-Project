@@ -1085,3 +1085,25 @@ class FinancialCalculationTests(TestCase):
             totals["profit"],
             Decimal("28.00")
         )
+
+
+# Boise 2027 vendor opportunities may have unpublished dates and fees.
+class EventOptionalInfoTests(TestCase):
+    def test_event_can_be_saved_without_unpublished_details(self):
+        event = Event.objects.create(
+            name="Unannounced Event",
+            location="Boise, Idaho",
+        )
+        self.assertIsNone(event.event_date)
+        self.assertIsNone(event.application_deadline)
+        self.assertIsNone(event.application_fee)
+
+    def test_events_display_tbd_for_unpublished_details(self):
+        event = Event.objects.create(
+            name="Unannounced Event",
+            location="Boise, Idaho",
+        )
+        response = self.client.get(reverse("event_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, event.name)
+        self.assertContains(response, "TBD")
