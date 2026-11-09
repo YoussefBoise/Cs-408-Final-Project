@@ -11,10 +11,10 @@
 
         <p><strong>Location:</strong> {{ event.location }}</p>
 
-        <p><strong>Event Date:</strong> {{ event.event_date|date:"M j, Y"|default:"TBD" }}</p>
+        <p><strong>Event Date:</strong> {{ event.event_date|date:"N j, Y"|default:"TBD" }}</p>
 
         <p><strong>Application Deadline:</strong>
-            {{ event.application_deadline|date:"M j, Y"|default:"TBD" }}
+            {{ event.application_deadline|date:"N j, Y"|default:"TBD" }}
         </p>
 
         <p><strong>Application Fee:</strong>
